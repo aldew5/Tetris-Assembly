@@ -32,6 +32,9 @@ RED:
     
 LIGHT_GRAY:
     .word 0x1C1C1C
+    
+BLACK:
+    .word 0x000000
 
 ##############################################################################
 # Mutable Data
@@ -47,6 +50,8 @@ LIGHT_GRAY:
 
 	# Run the Tetris game.
 main:
+    lw $s0, ADDR_KBRD       # $s0 = keyboard location in memory
+    li $s1, 0               # $s1 = offset to block location
     lw $t0, ADDR_DSPL       # $t0 = base address for display
     li $t1, 1024            # $t1 = address of final pixel in bottom row
     lw $t2, LIGHT_GRAY      # $t2 = current color
@@ -56,11 +61,22 @@ main:
     li $t7, 0               # $t7 = counter for index on current row
     li $t8, 32              # $t8 = address of final pixel in row
 
+grid_init:
+    lw $t0, ADDR_DSPL       # $t0 = base address for display
+    li $t1, 1024            # $t1 = address of final pixel in bottom row
+    lw $t2, LIGHT_GRAY      # $t2 = current color
+    li $t3, 0               # $t3 = counter for end of board
+    lw $t6, BLACK
+    li $t7, 0               # $t7 = counter for index on current row
+    li $t8, 32              # $t8 = address of final pixel in row
+    
 grid1:
     beq $t3, $t1, rows_init     # break if grid complete
     beq $t7, $t8, offset1       # break if row complete move to next row
     sw $t2, 0($t0)              # write a light gray cell
-    addi $t0, $t0, 8            # increment 8 to skip one pixel and draw in the next spot
+    addi $t0, $t0, 4            # move to next pixel
+    sw $t6, 0($t0)              # draw black
+    addi $t0, $t0, 4            # next pixel
     addi $t3, $t3, 2            # increment both counters by 2
     addi $t7, $t7, 2
     j grid1                     # loop until row complete
@@ -68,8 +84,10 @@ grid1:
 grid2:
     beq $t3, $t1, rows_init     # same logic as above grid1 and grid2 handle alternate rows
     beq $t7, $t8, offset2
-    sw $t2, 0($t0)
-    addi $t0, $t0, 8
+    sw $t2, 0($t0)              # write a light gray cell
+    addi $t0, $t0, 4            # move to next pixel
+    sw $t6, 0($t0)              # draw black
+    addi $t0, $t0, 4 
     addi $t3, $t3, 2
     addi $t7, $t7, 2
     j grid2
@@ -108,7 +126,7 @@ columns_init:
     li $t4, 32             # $t4 = number of rows
 
 columns_loop:
-    beq $t3, $t4, exit      # break if counter is 256
+    beq $t3, $t4, draw_rect      # break if counter is 256
     sw $t2, 0($t1)          # write on right
     sw $t2, 0($t0)          # write on left
     addi $t0, $t0, 128       # increment pixel pos
@@ -116,15 +134,43 @@ columns_loop:
     addi $t3, $t3, 1        # increment counter
     j columns_loop
 
+# for now draws at ADDR_DISPLAY
+# note could be done with a loop but probably fine to do it this way
+# assumes that $s1 contains the value we start writing to
+draw_rect:
+    lw $t2, RED             # $t2 = color of block
+    lw $t0, ADDR_DSPL
+    add $t0, $t0, $s1
+    sw $t2, 0($t0)
+    addi $t0, $t0, 128      # draw the pixel, go to next row and do same
+    sw $t2, 0($t0)
+    addi $t0, $t0, 128
+    sw $t2, 0($t0)
+    addi $t0, $t0, 128
+    sw $t2, 0($t0)
+    j game_loop
+# Checks for keyboard input
+keyboard_address:
+    lw $t0, 0($s0)              # contents are 1 iff some key has been pressed
+    beq $t0, 1, keyboard_input  # if something has been pressed, handle it 
+    j game_loop                 # else, go back to game loop
+    
+#Checks for keyboard input
+keyboard_input:                     	# A key is pressed
+    lw $t0, 4($s0)                  	# Load second word from keyboard (which contains code)
+    beq $t0 0x76, move_left	        	# moves paddle left 1 unit
 
-
-exit:
-    li $v0, 10              # terminate the program gracefully
-    syscall
+# moves block left
+move_left:
+    addi $s1, $s1, 4                    # set the value of $s1 where the block will now be drawn
+    lw $t0, ADDR_DSPL                   # $t0 = top left pixel so grid drawing works
+    
+    j grid_init               # redraw everything but now the block is moved left
 
 
 game_loop:
 	# 1a. Check if key has been pressed
+	j keyboard_address
     # 1b. Check which key has been pressed
     # 2a. Check for collisions
 	# 2b. Update locations (paddle, ball)
@@ -135,3 +181,6 @@ game_loop:
     b game_loop
     
 
+exit:
+    li $v0, 10              # terminate the program gracefully
+    syscall
