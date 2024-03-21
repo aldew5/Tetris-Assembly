@@ -2,7 +2,7 @@
 # This file contains our implementation of Tetris.
 #
 # Student 1: Alec Dewulf, Student Number
-# Student 2: Name, Student Number (if applicable)
+# Student 2: Faraaz Ahmed, 1008752985
 ######################## Bitmap Display Configuration ########################
 # - Unit width in pixels: 8
 # - Unit height in pixels: 8
