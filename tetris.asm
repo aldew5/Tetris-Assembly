@@ -25,7 +25,13 @@ ADDR_KBRD:
 
 # colors
 GRAY:
-    .word 0x808080 
+    .word 0x444444
+    
+RED:
+    .word 0xff0000
+    
+LIGHT_GRAY:
+    .word 0x1C1C1C
 
 ##############################################################################
 # Mutable Data
@@ -42,19 +48,54 @@ GRAY:
 	# Run the Tetris game.
 main:
     lw $t0, ADDR_DSPL       # $t0 = base address for display
+    li $t1, 1024            # $t1 = address of final pixel in bottom row
+    lw $t2, LIGHT_GRAY      # $t2 = current color
+    li $t3, 0               # $t3 = counter for end of board
+    lw $t5, ADDR_DSPL
+    addi $t5, $t5, 3968     # t5 = current index on bottom row
+    li $t7, 0               # $t7 = counter for index on current row
+    li $t8, 32              # $t8 = address of final pixel in row
+
+grid1:
+    beq $t3, $t1, rows_init     # break if grid complete
+    beq $t7, $t8, offset1       # break if row complete move to next row
+    sw $t2, 0($t0)              # write a light gray cell
+    addi $t0, $t0, 8            # increment 8 to skip one pixel and draw in the next spot
+    addi $t3, $t3, 2            # increment both counters by 2
+    addi $t7, $t7, 2
+    j grid1                     # loop until row complete
+    
+grid2:
+    beq $t3, $t1, rows_init     # same logic as above grid1 and grid2 handle alternate rows
+    beq $t7, $t8, offset2
+    sw $t2, 0($t0)
+    addi $t0, $t0, 8
+    addi $t3, $t3, 2
+    addi $t7, $t7, 2
+    j grid2
+    
+offset1:                        # offset by +4 in alternate rows and reset counter
+    addi $t0, $t0, 4
+    li $t7, 0
+    j grid2
+    
+offset2:                        # offset by -4 in alternate rows and reset counter
+    addi $t0, $t0, -4
+    li $t7, 0
+    j grid1
+    
+rows_init:
+    lw $t0, ADDR_DSPL       # $t0 = base address for display
     li $t1, 32              # $t1 = address of final pixel in row
     lw $t2, GRAY            # $t2 = current color
     li $t3, 0               # $t3 = counter
-    lw $t5, ADDR_DSPL       
-    addi $t5, $t5, 3968     #t5 = current index on bottom row    
-
 
 # draws the top and bottom rows in the border
 rows:
     beq $t3, $t1, columns_init      # break if we have colored first row
     sw $t2, 0($t0)          # write a grey cell
     sw $t2 0($t5)
-    addi $t0, $t0, 4        # increment pixel positions
+    # addi $t0, $t0, 4        # increment pixel positions
     addi $t5, $t5, 4
     addi $t3, $t3, 1        # increment counter
     j rows                  # jump back to start of loop
