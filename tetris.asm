@@ -160,22 +160,29 @@ keyboard_address:
 #Checks for keyboard input
 keyboard_input:                     	# A key is pressed
     lw $t0, 4($s0)                  	# Load second word from keyboard (which contains code)
-    beq $t0 0x64, move_left	        	# moves cube left 1 pixel
+    beq $t0 0x64, move_right	        # moves cube right 1 pixel
+    beq $t0, 0x61, move_left            # move left 1 pixel
+    beq $t0, 0x73, move_down
     
     j game_loop
 
 # moves block left
-move_left:
+move_right:
     addi $s1, $s1, 4                    # set the value of $s1 where the block will now be drawn
     lw $t0, ADDR_DSPL                   # $t0 = top left pixel so grid drawing works
     
     j grid_init                         # redraw everything but now the block is moved left
-    
-move_right:
+
+# same idea as moving right except subtract 4
+move_left:
     subi $s1, $s1, 4
     lw $t0, ADDR_DSPL
     j grid_init
 
+move_down:
+    addi $s1, $s1, 128
+    lw $t0, ADDR_DSPL
+    j grid_init
 
 game_loop:
 	# 1a. Check if key has been pressed
