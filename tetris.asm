@@ -189,7 +189,7 @@ game_loop:
 	j keyboard_address
     # 1b. Check which key has been pressed
     # 2a. Check for collisions
-	# 2b. Update locations (paddle, ball)
+	# 2b. Update locations
 	# 3. Draw the screen
 	# 4. Sleep
 
