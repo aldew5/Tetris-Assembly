@@ -107,7 +107,9 @@ rows_init:
     li $t1, 32              # $t1 = address of final pixel in row
     lw $t2, GRAY            # $t2 = current color
     li $t3, 0               # $t3 = counter
-
+    lw $t5, ADDR_DSPL       
+    addi $t5, $t5, 3968     # t5 = current index on bottom row
+    
 # draws the top and bottom rows in the border
 rows:
     beq $t3, $t1, columns_init      # break if we have colored first row
@@ -158,7 +160,8 @@ keyboard_address:
 #Checks for keyboard input
 keyboard_input:                     	# A key is pressed
     lw $t0, 4($s0)                  	# Load second word from keyboard (which contains code)
-    beq $t0 0x76, move_left	        	# moves paddle left 1 unit
+    beq $t0 0x64, move_left	        	# moves paddle left 1 unit
+    j game_loop
 
 # moves block left
 move_left:
