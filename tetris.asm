@@ -60,6 +60,7 @@ main:
     addi $t5, $t5, 3968     # t5 = current index on bottom row
     li $t7, 0               # $t7 = counter for index on current row
     li $t8, 32              # $t8 = address of final pixel in row
+    li $t9, 0               # $t9 = rotation counter
 
 grid_init:
     lw $t0, ADDR_DSPL       # $t0 = base address for display
@@ -144,10 +145,13 @@ draw_rect:
     lw $t0, ADDR_DSPL
     add $t0, $t0, $s1
     sw $t2, 0($t0)
+    add $t0, $t0, $s4       # register for rotation
     addi $t0, $t0, 128      # draw the pixel, go to next row and do same
     sw $t2, 0($t0)
+    add $t0, $t0, $s3       # register for rotation
     addi $t0, $t0, 128
     sw $t2, 0($t0)
+    add $t0, $t0, $s2       # register for rotation
     addi $t0, $t0, 128
     sw $t2, 0($t0)
     j game_loop
@@ -163,6 +167,8 @@ keyboard_input:                     	# A key is pressed
     beq $t0 0x64, move_right	        # moves cube right 1 pixel
     beq $t0, 0x61, move_left            # move left 1 pixel
     beq $t0, 0x73, move_down
+    beq $t0, 0x77, rotate1
+    beq $t0, 0x71, exit
     
     j game_loop
 
@@ -184,6 +190,35 @@ move_down:
     lw $t0, ADDR_DSPL
     j grid_init
 
+rotate1:                            # Rotate horizontally
+    beq $t9, 1, rotate2
+    addi $s1, $s1, 8
+    addi $s1, $s1, 256
+    addi $s4, $s4, -4
+    addi $s4, $s4, -128
+    addi $s3, $s3, -4
+    addi $s3, $s3, -128
+    addi $s2, $s2, -4
+    addi $s2, $s2, -128
+    lw $t0, ADDR_DSPL
+    li $t9, 1
+    
+    j grid_init
+    
+rotate2:                            # Rotate vertically
+    addi $s1, $s1, -8
+    addi $s1, $s1, -256
+    addi $s4, $s4, 4
+    addi $s4, $s4, 128
+    addi $s3, $s3, 4
+    addi $s3, $s3, 128
+    addi $s2, $s2, 4
+    addi $s2, $s2, 128
+    lw $t0, ADDR_DSPL
+    li $t9, 0
+    
+    j grid_init
+    
 game_loop:
 	# 1a. Check if key has been pressed
 	j keyboard_address
