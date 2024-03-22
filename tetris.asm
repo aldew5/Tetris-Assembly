@@ -167,7 +167,7 @@ keyboard_input:                     	# A key is pressed
     beq $t0 0x64, move_right	        # moves cube right 1 pixel
     beq $t0, 0x61, move_left            # move left 1 pixel
     beq $t0, 0x73, move_down
-    beq $t0, 0x77, rotate1
+    beq $t0, 0x77, rotate
     beq $t0, 0x71, exit
     
     j game_loop
@@ -190,8 +190,13 @@ move_down:
     lw $t0, ADDR_DSPL
     j grid_init
 
-rotate1:                            # Rotate horizontally
+rotate:                             # Function to decide which rotation position the block is at
+    beq $t9, 0, rotate1
     beq $t9, 1, rotate2
+    beq $t9, 2, rotate3
+    beq $t9, 3, rotate4
+
+rotate1:                            # Rotate horizontally about third block first position
     addi $s1, $s1, 8
     addi $s1, $s1, 256
     addi $s4, $s4, -4
@@ -205,7 +210,21 @@ rotate1:                            # Rotate horizontally
     
     j grid_init
     
-rotate2:                            # Rotate vertically
+rotate2:                            # Rotate vertically about third block second position
+    addi $s1, $s1, -8
+    addi $s1, $s1, 256
+    addi $s4, $s4, 4
+    addi $s4, $s4, -128
+    addi $s3, $s3, 4
+    addi $s3, $s3, -128
+    addi $s2, $s2, 4
+    addi $s2, $s2, -128
+    lw $t0, ADDR_DSPL
+    li $t9, 2
+    
+    j grid_init
+    
+rotate3:                            # Rotate horizontally about third block third position
     addi $s1, $s1, -8
     addi $s1, $s1, -256
     addi $s4, $s4, 4
@@ -215,9 +234,24 @@ rotate2:                            # Rotate vertically
     addi $s2, $s2, 4
     addi $s2, $s2, 128
     lw $t0, ADDR_DSPL
-    li $t9, 0
+    li $t9, 3
     
     j grid_init
+    
+rotate4:                           # Rotate vertically about third block fourth position
+    addi $s1, $s1, 8
+    addi $s1, $s1, -256
+    addi $s4, $s4, -4
+    addi $s4, $s4, 128
+    addi $s3, $s3, -4
+    addi $s3, $s3, 128
+    addi $s2, $s2, -4
+    addi $s2, $s2, 128
+    lw $t0, ADDR_DSPL
+    li $t9, 0
+    
+    j grid_init    
+    
     
 game_loop:
 	# 1a. Check if key has been pressed
