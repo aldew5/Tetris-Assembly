@@ -30,6 +30,9 @@ GRAY:
 RED:
     .word 0xff0000
     
+BLUE:
+    .word 0x0000FF
+    
 LIGHT_GRAY:
     .word 0x1C1C1C
     
@@ -40,6 +43,8 @@ BLACK:
 # Mutable Data
 ##############################################################################
 
+BLOCKS:
+    .space 800
 ##############################################################################
 # Code
 ##############################################################################
@@ -51,7 +56,8 @@ BLACK:
 	# Run the Tetris game.
 main:
     lw $s0, ADDR_KBRD       # $s0 = keyboard location in memory
-    li $s1, 0               # $s1 = offset to block location
+    li $s1, 4               # $s1 = offset to block location
+    li $s6, 0               # $s6 = number of blocks in memory
     lw $t0, ADDR_DSPL       # $t0 = base address for display
     li $t1, 1024            # $t1 = address of final pixel in bottom row
     lw $t2, LIGHT_GRAY      # $t2 = current color
@@ -129,13 +135,69 @@ columns_init:
     li $t4, 32             # $t4 = number of rows
 
 columns_loop:
-    beq $t3, $t4, draw_rect      # break if counter is 256
+    beq $t3, $t4, draw_blocks      # break if counter is 256
     sw $t2, 0($t1)          # write on right
     sw $t2, 0($t0)          # write on left
     addi $t0, $t0, 128       # increment pixel pos
     addi $t1, $t1, 128
     addi $t3, $t3, 1        # increment counter
     j columns_loop
+# block storage: 
+# - pos (pixel value when it hits the ground)
+# - orientation 1 is original and 2 is one right and so on.
+draw_blocks:
+    lw $t2, BLUE
+    la $t0, BLOCKS              # blocks index
+    li $t3, 0
+    add $t3, $t3, $s6           # $t3 = number of blocks
+    beq $t3, 0, draw_rect       # no more old blocks left to draw 
+    
+    sw $t2, 0($t0)              # $t5 is position of block
+    j draw_rect
+    addi $t0, $t0, 4            # want the orientation
+    lw $t3, 0($t0)              # $t3 = orientation
+    beq $t3, 1, draw_one        # branch accordingly (note both vertical orientations look the same)
+    beq $t3, 2, draw_two 
+    #beq $t3, 3, draw_one
+    #beq $t3, 4, draw_four
+    
+draw_one:
+    #DRAW ORIENTATION 1
+    lw $t8, ADDR_DSPL
+    sw $t2, 0($t8)              # draw the rect
+    addi $t5, $t5, -128      
+    sw $t2, 0($t5)
+    addi $t5, $t5, -128
+    sw $t2, 0($t5)
+    addi $t5, $t5, -128
+    sw $t2, 0($t5)
+# one left two right
+draw_two:
+lw $t8, ADDR_DSPL
+    sw $t2, 0($t8)    
+    addi $t0, $t0, -4           # go back to block pos
+    
+    sw $t2, 0($t0)              # draw the rect
+    addi $t0, $t0, -4           # one left
+    sw $t2, 0($t0)
+    addi $t0, $t0, 8            # two right
+    sw $t2, 0($t0)
+    addi $t0, $t0, 4
+    sw $t2, 0($t0)
+    
+draw_four:
+lw $t8, ADDR_DSPL
+    sw $t2, 0($t8)    
+    addi $t0, $t0, -4           # go back to block pos
+    
+    sw $t2, 0($t0)              # draw the rect
+    addi $t0, $t0, 4           # one left
+    sw $t2, 0($t0)
+    addi $t0, $t0, -8            # two right
+    sw $t2, 0($t0)
+    addi $t0, $t0, -4
+    sw $t2, 0($t0)
+
 
 # for now draws at ADDR_DISPLAY
 # note could be done with a loop but probably fine to do it this way
@@ -172,8 +234,11 @@ keyboard_input:                     	# A key is pressed
     
     j game_loop
 
-# moves block left
+# moves block right
 move_right:
+    # need to check them ALL
+    beq $s1, 120, game_loop             # if we're already at 120 do nothing
+    
     addi $s1, $s1, 4                    # set the value of $s1 where the block will now be drawn
     lw $t0, ADDR_DSPL                   # $t0 = top left pixel so grid drawing works
     
@@ -181,14 +246,27 @@ move_right:
 
 # same idea as moving right except subtract 4
 move_left:
+    beq $s1, 4, game_loop               # already at left edge
+    
     subi $s1, $s1, 4
     lw $t0, ADDR_DSPL
     j grid_init
 
 move_down:
+    bge $s1, 35, save_rect             # on bottom row so save the rect 
+
     addi $s1, $s1, 128
     lw $t0, ADDR_DSPL
     j grid_init
+    
+save_rect:
+    # need to find next unfilled location in memory
+    la $t0, BLOCKS                  # location in memory where we store blocks
+    sw $s1, 0($t0)                  # s1 is pos of our block
+    li $s1, 4                       # reset it for new block
+    sw $t9, 4($t0)                  # save orientation
+    addi $s6, $s6, 1                #
+    j game_loop
 
 rotate:                             # Function to decide which rotation position the block is at
     beq $t9, 0, rotate1
