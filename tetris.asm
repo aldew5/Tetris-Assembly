@@ -51,7 +51,11 @@ BLACK:
 	# Run the Tetris game.
 main:
     lw $s0, ADDR_KBRD       # $s0 = keyboard location in memory
-    li $s1, 0               # $s1 = offset to block location
+    li $s1, 4               # $s1 = offset to block location
+    li $s2, 0
+    li $s3, 0
+    li $s4, 0               # USED IN ROTATIONS FIX
+    li $s7, 0               # $s7 = rotation counter
     lw $t0, ADDR_DSPL       # $t0 = base address for display
     li $t1, 1024            # $t1 = address of final pixel in bottom row
     lw $t2, LIGHT_GRAY      # $t2 = current color
@@ -60,7 +64,7 @@ main:
     addi $t5, $t5, 3968     # t5 = current index on bottom row
     li $t7, 0               # $t7 = counter for index on current row
     li $t8, 32              # $t8 = address of final pixel in row
-    li $t9, 0               # $t9 = rotation counter
+    
 
 grid_init:
     lw $t0, ADDR_DSPL       # $t0 = base address for display
@@ -129,7 +133,7 @@ columns_init:
     li $t4, 32             # $t4 = number of rows
 
 columns_loop:
-    beq $t3, $t4, draw_rect      # break if counter is 256
+    beq $t3, $t4, draw_rect      # break if counter is 32
     sw $t2, 0($t1)          # write on right
     sw $t2, 0($t0)          # write on left
     addi $t0, $t0, 128       # increment pixel pos
@@ -164,6 +168,7 @@ keyboard_address:
 #Checks for keyboard input
 keyboard_input:                     	# A key is pressed
     lw $t0, 4($s0)                  	# Load second word from keyboard (which contains code)
+    li $ra, 0                           # this will be used to check where to jump back
     beq $t0 0x64, move_right	        # moves cube right 1 pixel
     beq $t0, 0x61, move_left            # move left 1 pixel
     beq $t0, 0x73, move_down
@@ -174,13 +179,17 @@ keyboard_input:                     	# A key is pressed
 
 # moves block left
 move_right:
+    li $t1, 8                  # $t1 = offset
+    jal check_collision_init
     addi $s1, $s1, 4                    # set the value of $s1 where the block will now be drawn
     lw $t0, ADDR_DSPL                   # $t0 = top left pixel so grid drawing works
     
     j grid_init                         # redraw everything but now the block is moved left
-
+    
 # same idea as moving right except subtract 4
 move_left:
+    li $t1, -4                  # $t1 = offset
+    jal check_collision_init
     subi $s1, $s1, 4
     lw $t0, ADDR_DSPL
     j grid_init
@@ -190,11 +199,82 @@ move_down:
     lw $t0, ADDR_DSPL
     j grid_init
 
-rotate:                             # Function to decide which rotation position the block is at
-    beq $t9, 0, rotate1
-    beq $t9, 1, rotate2
-    beq $t9, 2, rotate3
-    beq $t9, 3, rotate4
+# check that we're not hitting left wall
+# ASSUME $t1 CONTAINS OFFSET
+check_collision_init:
+    li $t0, 0                   # $t0 = left wall position
+    lw $t5, ADDR_DSPL
+    addi $t5, $t5, 124       # $t5 = first pixel in right column
+    #li $t1, -4                   # $t1 = block pos + 1 pixel
+    li $t2, 0                   # $t2 = rows counter
+    li $t3, 32                  # $t3 = number of rows
+    li $t4, 1                   # $t4 used for orientation check    
+    
+    sw $ra, 0($sp)              # save return address on stack
+    
+    add $t1, $t1, $s1           # add curr pos to offset
+    jal check_collision_loop    # check first block
+    li $t0, 0                       # reset everything
+    li $t2, 0                  
+    lw $t5, ADDR_DSPL
+    addi $t5, $t5, 124       
+    add $t1, $t1, $s4                   
+    addi $t1, $t1, 128
+    jal check_collision_loop   # then second
+    li $t0, 0                  
+    li $t2, 0  
+    lw $t5, ADDR_DSPL
+    addi $t5, $t5, 124      
+    add $t1, $t1, $s3                   
+    addi $t1, $t1, 128
+    jal check_collision_loop
+    li $t0, 0                  
+    li $t2, 0 
+    lw $t5, ADDR_DSPL
+    addi $t5, $t5, 124 
+    add $t1, $t1, $s2                  
+    addi $t1, $t1, 128
+    jal check_collision_loop
+    lw $ra, 0($sp)
+    
+    jr $ra
+    
+check_collision_loop:
+    beq $t0, $t1, game_loop                     # curr wall (t0) = block pos (t1) so we hit a wall
+    beq $t5, $t1, game_loop                     # check right wall
+    
+    addi $t0, $t0, 128                          # increment $t0 to next left wall
+    addi $t5, $t5, 128
+    addi $t2, $t2, 1                            # next row
+    bne $t2, $t3, check_collision_loop                     # have NOT checked every row
+    
+    jr $ra                                      # else, we've looked at every wall and didn't hit any. Jump back to main function
+
+
+# Function to decide which rotation position the block is at
+rotate: 
+    #li $t5, 0                           # t5 saves curr orientation
+    #add $t5, $t5, $s7                  
+    #jal update_orientation            # temporary update orientation
+    #li $s7, 0
+    #add $s7, $s7, $t5              # fix orientation
+    beq $s7, 0, rotate1
+    beq $s7, 1, rotate2
+    beq $s7, 2, rotate3
+    beq $s7, 3, rotate4
+    
+    
+update_orientation:
+    addi $s7, $s7, 1
+    bne $s7, 4, check_orientation_collide   # if s7 not 4 we've updated orientation correctly
+    li $s7, 0                               # else it should be zero
+    j check_orientation_collide
+
+check_orientation_collide:
+    lw $t0, ADDR_DSPL       # $t0 = base address for display
+    add $t0, $t0, $s1
+    # CHECK EVERY WALL
+    
 
 rotate1:                            # Rotate horizontally about third block first position
     addi $s1, $s1, 8
@@ -206,7 +286,7 @@ rotate1:                            # Rotate horizontally about third block firs
     addi $s2, $s2, -4
     addi $s2, $s2, -128
     lw $t0, ADDR_DSPL
-    li $t9, 1
+    li $s7, 1
     
     j grid_init
     
@@ -220,7 +300,7 @@ rotate2:                            # Rotate vertically about third block second
     addi $s2, $s2, 4
     addi $s2, $s2, -128
     lw $t0, ADDR_DSPL
-    li $t9, 2
+    li $s7, 2
     
     j grid_init
     
@@ -234,7 +314,7 @@ rotate3:                            # Rotate horizontally about third block thir
     addi $s2, $s2, 4
     addi $s2, $s2, 128
     lw $t0, ADDR_DSPL
-    li $t9, 3
+    li $s7, 3
     
     j grid_init
     
@@ -248,7 +328,7 @@ rotate4:                           # Rotate vertically about third block fourth 
     addi $s2, $s2, -4
     addi $s2, $s2, 128
     lw $t0, ADDR_DSPL
-    li $t9, 0
+    li $s7, 0
     
     j grid_init    
     
