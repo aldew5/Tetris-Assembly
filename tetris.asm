@@ -30,6 +30,9 @@ GRAY:
 RED:
     .word 0xff0000
     
+BLUE:
+    .word 0x0000FF
+    
 LIGHT_GRAY:
     .word 0x1C1C1C
     
@@ -179,7 +182,8 @@ keyboard_input:                     	# A key is pressed
 
 # moves block left
 move_right:
-    li $t1, 8                  # $t1 = offset
+    li $t1, 4                  # $t1 = offset
+    li $t6, -1                  # indicates type of movement
     jal check_collision_init
     addi $s1, $s1, 4                    # set the value of $s1 where the block will now be drawn
     lw $t0, ADDR_DSPL                   # $t0 = top left pixel so grid drawing works
@@ -189,6 +193,7 @@ move_right:
 # same idea as moving right except subtract 4
 move_left:
     li $t1, -4                  # $t1 = offset
+    li $t6, -1                  # indicates type of movement
     jal check_collision_init
     subi $s1, $s1, 4
     lw $t0, ADDR_DSPL
@@ -200,35 +205,38 @@ move_down:
     j grid_init
 
 # check that we're not hitting left wall
-# ASSUME $t1 CONTAINS OFFSET
+# ASSUME $t1 CONTAINS OFFSET (hypothetical moving of block)
+# ASSUME $t6 = -1 if not rotation and the rotation number otherwise
 check_collision_init:
-    li $t0, 0                   # $t0 = left wall position
+    lw $t0, ADDR_DSPL                   # $t0 = left wall position
     lw $t5, ADDR_DSPL
+    add $t1, $t1, $t5
     addi $t5, $t5, 124       # $t5 = first pixel in right column
-    #li $t1, -4                   # $t1 = block pos + 1 pixel
     li $t2, 0                   # $t2 = rows counter
     li $t3, 32                  # $t3 = number of rows
     li $t4, 1                   # $t4 used for orientation check    
     
     sw $ra, 0($sp)              # save return address on stack
-    
     add $t1, $t1, $s1           # add curr pos to offset
     jal check_collision_loop    # check first block
-    li $t0, 0                       # reset everything
+    
+    lw $t0, ADDR_DSPL                              # reset everything
     li $t2, 0                  
     lw $t5, ADDR_DSPL
     addi $t5, $t5, 124       
     add $t1, $t1, $s4                   
     addi $t1, $t1, 128
     jal check_collision_loop   # then second
-    li $t0, 0                  
+    
+    lw $t0, ADDR_DSPL                 
     li $t2, 0  
     lw $t5, ADDR_DSPL
     addi $t5, $t5, 124      
-    add $t1, $t1, $s3                   
+    add $t1, $t1, $s3           # for rotations                 
     addi $t1, $t1, 128
     jal check_collision_loop
-    li $t0, 0                  
+    
+    lw $t0, ADDR_DSPL            
     li $t2, 0 
     lw $t5, ADDR_DSPL
     addi $t5, $t5, 124 
@@ -240,8 +248,8 @@ check_collision_init:
     jr $ra
     
 check_collision_loop:
-    beq $t0, $t1, game_loop                     # curr wall (t0) = block pos (t1) so we hit a wall
-    beq $t5, $t1, game_loop                     # check right wall
+    beq $t0, $t1, handle_collision                     # curr wall (t0) = block pos (t1) so we hit a wall
+    beq $t5, $t1, handle_collision             # check right wall
     
     addi $t0, $t0, 128                          # increment $t0 to next left wall
     addi $t5, $t5, 128
@@ -251,29 +259,20 @@ check_collision_loop:
     jr $ra                                      # else, we've looked at every wall and didn't hit any. Jump back to main function
 
 
+handle_collision:
+    beq $t6, -1, game_loop
+    beq $t6, 0, undo_rotate1
+    beq $t6, 1, undo_rotate2
+    beq $t6, 2, undo_rotate3
+    beq $t6, 3, undo_rotate4
+
+
 # Function to decide which rotation position the block is at
 rotate: 
-    #li $t5, 0                           # t5 saves curr orientation
-    #add $t5, $t5, $s7                  
-    #jal update_orientation            # temporary update orientation
-    #li $s7, 0
-    #add $s7, $s7, $t5              # fix orientation
     beq $s7, 0, rotate1
     beq $s7, 1, rotate2
     beq $s7, 2, rotate3
     beq $s7, 3, rotate4
-    
-    
-update_orientation:
-    addi $s7, $s7, 1
-    bne $s7, 4, check_orientation_collide   # if s7 not 4 we've updated orientation correctly
-    li $s7, 0                               # else it should be zero
-    j check_orientation_collide
-
-check_orientation_collide:
-    lw $t0, ADDR_DSPL       # $t0 = base address for display
-    add $t0, $t0, $s1
-    # CHECK EVERY WALL
     
 
 rotate1:                            # Rotate horizontally about third block first position
@@ -285,10 +284,23 @@ rotate1:                            # Rotate horizontally about third block firs
     addi $s3, $s3, -128
     addi $s2, $s2, -4
     addi $s2, $s2, -128
+    
+    li $t1, 0               # zero offset
+    li $t6, 0
+    jal check_collision_init
+    
     lw $t0, ADDR_DSPL
     li $s7, 1
     
     j grid_init
+    
+    
+undo_rotate1:
+    subi $s1, $s1, 264
+    subi $s4, $s4, -132
+    subi $s3, $s3, -132
+    subi $s2, $s2, -132
+    j game_loop
     
 rotate2:                            # Rotate vertically about third block second position
     addi $s1, $s1, -8
@@ -299,10 +311,22 @@ rotate2:                            # Rotate vertically about third block second
     addi $s3, $s3, -128
     addi $s2, $s2, 4
     addi $s2, $s2, -128
+    
+    li $t1, 0                   # zero offset
+    li $t6, 1
+    jal check_collision_init
+    
     lw $t0, ADDR_DSPL
     li $s7, 2
     
     j grid_init
+
+undo_rotate2:
+    subi $s1, $s1, 248
+    subi $s4, $s4, -124
+    subi $s3, $s3, -124
+    subi $s2, $s2, -124
+    j game_loop
     
 rotate3:                            # Rotate horizontally about third block third position
     addi $s1, $s1, -8
@@ -313,10 +337,22 @@ rotate3:                            # Rotate horizontally about third block thir
     addi $s3, $s3, 128
     addi $s2, $s2, 4
     addi $s2, $s2, 128
+    
+    li $t1, 0                   # zero offset
+    li $t6, 2
+    jal check_collision_init
+    
     lw $t0, ADDR_DSPL
     li $s7, 3
     
     j grid_init
+    
+undo_rotate3:
+    subi $s1, $s1, -264
+    subi $s4, $s4, 132
+    subi $s3, $s3, 132
+    subi $s2, $s2, 132
+    j game_loop
     
 rotate4:                           # Rotate vertically about third block fourth position
     addi $s1, $s1, 8
@@ -326,12 +362,23 @@ rotate4:                           # Rotate vertically about third block fourth 
     addi $s3, $s3, -4
     addi $s3, $s3, 128
     addi $s2, $s2, -4
-    addi $s2, $s2, 128
+    addi $s2, $s2, 128 
+    
+    li $t1, 0
+    li $t6, 3
+    jal check_collision_init
+    
     lw $t0, ADDR_DSPL
     li $s7, 0
     
-    j grid_init    
+    j grid_init  
     
+undo_rotate4:
+    subi $s1, $s1, -248
+    subi $s4, $s4, 124
+    subi $s3, $s3, 124
+    subi $s2, $s2, 124
+    j game_loop
     
 game_loop:
 	# 1a. Check if key has been pressed
