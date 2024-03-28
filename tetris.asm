@@ -38,6 +38,9 @@ LIGHT_GRAY:
     
 BLACK:
     .word 0x000000
+    
+ARRAY:
+    .word 0:4096
 
 ##############################################################################
 # Mutable Data
@@ -67,6 +70,21 @@ main:
     addi $t5, $t5, 3968     # t5 = current index on bottom row
     li $t7, 0               # $t7 = counter for index on current row
     li $t8, 32              # $t8 = address of final pixel in row
+
+array_init:
+    lw $t0, LIGHT_GRAY
+    la $t1, ARRAY
+    li $t2, 0               # $t2 = counter
+    li $t3, 0
+
+# initialize array with 0's
+array_loop:
+    beq $t2, 4096, grid_init
+    sw $t3, 0($t1)
+    addi $t2, $t2, 1
+    addi $t1, $t1, 4
+    
+    j array_loop
     
 
 grid_init:
@@ -117,37 +135,57 @@ rows_init:
     li $t3, 0               # $t3 = counter
     lw $t5, ADDR_DSPL       
     addi $t5, $t5, 3968     # t5 = current index on bottom row
+    li $t6, 992 
+    la $t7, ARRAY
+    addi $t7, $t7, 3968
+    li $t8, 1
     
 # draws the top and bottom rows in the border
 rows:
     beq $t3, $t1, columns_init      # break if we have colored first row
     sw $t2, 0($t0)          # write a grey cell
     sw $t2 0($t5)
+    sw $t8, 0($t7)          # update array
     # addi $t0, $t0, 4        # increment pixel positions
     addi $t5, $t5, 4
+    addi $t7, $t7, 4
     addi $t3, $t3, 1        # increment counter
+    
     j rows                  # jump back to start of loop
 
 columns_init:
     lw $t0, ADDR_DSPL       # $t0 = first pixels in left column
     lw $t1, ADDR_DSPL
+    la $t7, ARRAY             # left col
+    la $t8, ARRAY           # right col
     addi $t1, $t1, 124       # $t1 = first pixel in right column
+    addi $t8, $t8, 124
+    
     li $t3, 0               # $t3 = counter
     li $t4, 32             # $t4 = number of rows
+    li $t5, 1
 
 columns_loop:
-    beq $t3, $t4, draw_rect      # break if counter is 32
+    beq $t3, $t4, draw_tetro      # break if counter is 32
     sw $t2, 0($t1)          # write on right
     sw $t2, 0($t0)          # write on left
+    
+    sw $t5, 0($t7)
+    sw $t5, 0($t8)
+    
     addi $t0, $t0, 128       # increment pixel pos
     addi $t1, $t1, 128
+    addi $t7, $t7, 128
+    addi $t8, $t8, 128
+    
     addi $t3, $t3, 1        # increment counter
     j columns_loop
 
 # for now draws at ADDR_DISPLAY
 # note could be done with a loop but probably fine to do it this way
 # assumes that $s1 contains the value we start writing to
-draw_rect:
+# assume $t5 contains the tetro we want to draw
+draw_tetro:
     lw $t2, RED             # $t2 = color of block
     lw $t0, ADDR_DSPL
     add $t0, $t0, $s1
@@ -161,7 +199,8 @@ draw_rect:
     add $t0, $t0, $s2       # register for rotation
     addi $t0, $t0, 128
     sw $t2, 0($t0)
-    j game_loop
+    j game_loop 
+
 # Checks for keyboard input
 keyboard_address:
     lw $t0, 0($s0)              # contents are 1 iff some key has been pressed
@@ -200,7 +239,12 @@ move_left:
     j grid_init
 
 move_down:
+    li $t1, 128                  # $t1 = offset
+    li $t6, -1  
+
+    jal check_collision_init
     addi $s1, $s1, 128
+
     lw $t0, ADDR_DSPL
     j grid_init
 
@@ -208,57 +252,41 @@ move_down:
 # ASSUME $t1 CONTAINS OFFSET (hypothetical moving of block)
 # ASSUME $t6 = -1 if not rotation and the rotation number otherwise
 check_collision_init:
-    lw $t0, ADDR_DSPL                   # $t0 = left wall position
-    lw $t5, ADDR_DSPL
-    add $t1, $t1, $t5
-    addi $t5, $t5, 124       # $t5 = first pixel in right column
-    li $t2, 0                   # $t2 = rows counter
-    li $t3, 32                  # $t3 = number of rows
-    li $t4, 1                   # $t4 used for orientation check    
+    la $t7, ARRAY
+    add $t7, $t7, $t1
+    add $t7, $t7, $s1
     
-    sw $ra, 0($sp)              # save return address on stack
-    add $t1, $t1, $s1           # add curr pos to offset
-    jal check_collision_loop    # check first block
+    # check each pixel separately
+    lw $t9, 0($t7)
+    li $t2, 0
+    bne $t9, $t2, handle_collision  # something other than zero in that position => COLLISION
     
-    lw $t0, ADDR_DSPL                              # reset everything
-    li $t2, 0                  
-    lw $t5, ADDR_DSPL
-    addi $t5, $t5, 124       
-    add $t1, $t1, $s4                   
-    addi $t1, $t1, 128
-    jal check_collision_loop   # then second
+    # second pixel
+    add $t7, $t7, $s4
+    addi $t7, $t7, 128
+    lw $t9, 0($t7)
     
-    lw $t0, ADDR_DSPL                 
-    li $t2, 0  
-    lw $t5, ADDR_DSPL
-    addi $t5, $t5, 124      
-    add $t1, $t1, $s3           # for rotations                 
-    addi $t1, $t1, 128
-    jal check_collision_loop
+    li $t2, 0
+    bne $t9, $t2, handle_collision
     
-    lw $t0, ADDR_DSPL            
-    li $t2, 0 
-    lw $t5, ADDR_DSPL
-    addi $t5, $t5, 124 
-    add $t1, $t1, $s2                  
-    addi $t1, $t1, 128
-    jal check_collision_loop
-    lw $ra, 0($sp)
+    # third
+    add $t7, $t7, $s3
+    addi $t7, $t7, 128
+    lw $t9, 0($t7)
+    
+    li $t2, 0
+    bne $t9, $t2, handle_collision
+    
+    # last
+    add $t7, $t7, $s2
+    addi $t7, $t7, 128
+    lw $t9, 0($t7)
+    
+    li $t2, 0
+    bne $t9, $t2, handle_collision
     
     jr $ra
     
-check_collision_loop:
-    beq $t0, $t1, handle_collision                     # curr wall (t0) = block pos (t1) so we hit a wall
-    beq $t5, $t1, handle_collision             # check right wall
-    
-    addi $t0, $t0, 128                          # increment $t0 to next left wall
-    addi $t5, $t5, 128
-    addi $t2, $t2, 1                            # next row
-    bne $t2, $t3, check_collision_loop                     # have NOT checked every row
-    
-    jr $ra                                      # else, we've looked at every wall and didn't hit any. Jump back to main function
-
-
 handle_collision:
     beq $t6, -1, game_loop
     beq $t6, 0, undo_rotate1
