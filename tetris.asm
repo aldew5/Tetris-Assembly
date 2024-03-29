@@ -50,6 +50,14 @@ ARRAY:
 # Code
 ##############################################################################
 
+
+# COLORS FOR ARRAY:
+# GREY: 1
+# GREY & FLOOR: 3
+# LIGHT GREY: -2
+# BLACK: -3
+# RED: 2
+
 # instruction memory
 	.text
 	.globl main
@@ -70,34 +78,20 @@ main:
     addi $t5, $t5, 3968     # t5 = current index on bottom row
     li $t7, 0               # $t7 = counter for index on current row
     li $t8, 32              # $t8 = address of final pixel in row
-
-array_init:
-    lw $t0, LIGHT_GRAY
-    la $t1, ARRAY
-    li $t2, 0               # $t2 = counter
-    li $t3, 0
-
-# initialize array with 0's
-array_loop:
-    beq $t2, 4096, grid_init
-    sw $t3, 0($t1)
-    addi $t2, $t2, 1
-    addi $t1, $t1, 4
     
-    j array_loop
     
 
 grid_init:
-    lw $t0, ADDR_DSPL       # $t0 = base address for display
+    la $t0, ARRAY       # $t0 = base address for display
     li $t1, 1024            # $t1 = address of final pixel in bottom row
-    lw $t2, LIGHT_GRAY      # $t2 = current color
+    li $t2, -2              # LIGHT GREY
     li $t3, 0               # $t3 = counter for end of board
-    lw $t6, BLACK
+    li $t6, -3              # BLACK
     li $t7, 0               # $t7 = counter for index on current row
     li $t8, 32              # $t8 = address of final pixel in row
     
 grid1:
-    beq $t3, $t1, rows_init     # break if grid complete
+    beq $t3, $t1, draw_game_init     # break if grid complete
     beq $t7, $t8, offset1       # break if row complete move to next row
     sw $t2, 0($t0)              # write a light gray cell
     addi $t0, $t0, 4            # move to next pixel
@@ -128,34 +122,26 @@ offset2:                        # offset by -4 in alternate rows and reset count
     li $t7, 0
     j grid1
     
+    
 rows_init:
-    lw $t0, ADDR_DSPL       # $t0 = base address for display
     li $t1, 32              # $t1 = address of final pixel in row
-    lw $t2, GRAY            # $t2 = current color
     li $t3, 0               # $t3 = counter
-    lw $t5, ADDR_DSPL       
-    addi $t5, $t5, 3968     # t5 = current index on bottom row
     li $t6, 992 
     la $t7, ARRAY
     addi $t7, $t7, 3968
-    li $t8, 1
+    li $t8, 3
     
 # draws the top and bottom rows in the border
 rows:
     beq $t3, $t1, columns_init      # break if we have colored first row
-    sw $t2, 0($t0)          # write a grey cell
-    sw $t2 0($t5)
     sw $t8, 0($t7)          # update array
-    # addi $t0, $t0, 4        # increment pixel positions
-    addi $t5, $t5, 4
+
     addi $t7, $t7, 4
     addi $t3, $t3, 1        # increment counter
     
     j rows                  # jump back to start of loop
 
 columns_init:
-    lw $t0, ADDR_DSPL       # $t0 = first pixels in left column
-    lw $t1, ADDR_DSPL
     la $t7, ARRAY             # left col
     la $t8, ARRAY           # right col
     addi $t1, $t1, 124       # $t1 = first pixel in right column
@@ -166,20 +152,58 @@ columns_init:
     li $t5, 1
 
 columns_loop:
-    beq $t3, $t4, draw_tetro      # break if counter is 32
-    sw $t2, 0($t1)          # write on right
-    sw $t2, 0($t0)          # write on left
-    
-    sw $t5, 0($t7)
+    beq $t3, $t4, draw_game_init      # break if counter is 32
+
+    sw $t5, 0($t7)          # for array
     sw $t5, 0($t8)
-    
-    addi $t0, $t0, 128       # increment pixel pos
-    addi $t1, $t1, 128
+
     addi $t7, $t7, 128
     addi $t8, $t8, 128
     
     addi $t3, $t3, 1        # increment counter
     j columns_loop
+    
+draw_game_init:
+    li $t0, 0               # counter
+    la $t2, ARRAY
+    lw $t3, ADDR_DSPL
+    
+    li $a0, 2 #integer to be printed
+    li $v0, 1 #system call code 1: print_int
+    syscall
+    
+    
+draw_game_loop:
+    beq $t0, 4096, draw_tetro        # looked at all the blocks
+    
+    lw $t1, 0($t2)                  # load array value at t2
+    lw $t5, RED
+    beq $t1, 2, draw_block      # draw red if there's a 2
+    lw $t5, GRAY
+    beq $t1, 1, draw_block
+    beq $t1, 3, draw_block      # grey floor
+    lw $t5, LIGHT_GRAY
+    beq $t1, -2, draw_block
+    lw $t5, BLACK
+    beq $t1, -3, draw_block
+    
+    addi $t3, $t3, 4                
+    addi $t2, $t2, 4
+    addi $t0, $t0, 1
+    
+    j draw_game_loop
+
+draw_block:
+    sw $t5, 0($t3)
+
+    addi $t3, $t3, 4                
+    addi $t2, $t2, 4
+    addi $t0, $t0, 1
+    
+    j draw_game_loop
+
+    
+
 
 # for now draws at ADDR_DISPLAY
 # note could be done with a loop but probably fine to do it this way
@@ -227,7 +251,7 @@ move_right:
     addi $s1, $s1, 4                    # set the value of $s1 where the block will now be drawn
     lw $t0, ADDR_DSPL                   # $t0 = top left pixel so grid drawing works
     
-    j grid_init                         # redraw everything but now the block is moved left
+    j draw_game_init                       # redraw everything but now the block is moved left
     
 # same idea as moving right except subtract 4
 move_left:
@@ -236,7 +260,7 @@ move_left:
     jal check_collision_init
     subi $s1, $s1, 4
     lw $t0, ADDR_DSPL
-    j grid_init
+    j draw_game_init 
 
 move_down:
     li $t1, 128                  # $t1 = offset
@@ -246,7 +270,7 @@ move_down:
     addi $s1, $s1, 128
 
     lw $t0, ADDR_DSPL
-    j grid_init
+    j draw_game_init
 
 # check that we're not hitting left wall
 # ASSUME $t1 CONTAINS OFFSET (hypothetical moving of block)
@@ -259,7 +283,7 @@ check_collision_init:
     # check each pixel separately
     lw $t9, 0($t7)
     li $t2, 0
-    bne $t9, $t2, handle_collision  # something other than zero in that position => COLLISION
+    bge $t9, $t2, handle_collision  # something other than zero in that position => COLLISION
     
     # second pixel
     add $t7, $t7, $s4
@@ -267,7 +291,7 @@ check_collision_init:
     lw $t9, 0($t7)
     
     li $t2, 0
-    bne $t9, $t2, handle_collision
+    bge $t9, $t2, handle_collision
     
     # third
     add $t7, $t7, $s3
@@ -275,7 +299,7 @@ check_collision_init:
     lw $t9, 0($t7)
     
     li $t2, 0
-    bne $t9, $t2, handle_collision
+    bge $t9, $t2, handle_collision
     
     # last
     add $t7, $t7, $s2
@@ -283,17 +307,48 @@ check_collision_init:
     lw $t9, 0($t7)
     
     li $t2, 0
-    bne $t9, $t2, handle_collision
+    bge $t9, $t2, handle_collision
     
     jr $ra
     
 handle_collision:
-    beq $t6, -1, game_loop
+    bge $t9, 2, handle_floor_collision
+    beq $t6, -1 game_loop    
+    
     beq $t6, 0, undo_rotate1
     beq $t6, 1, undo_rotate2
     beq $t6, 2, undo_rotate3
     beq $t6, 3, undo_rotate4
 
+
+handle_floor_collision:
+    # update array 
+    la $t7, ARRAY
+    li $t2, 2
+    #subi $s1, $s1, 4            # hit the ground so push up
+    add $t7, $t7, $s1
+    sw $t2, 0($t7)              # draw first pixel
+    
+    add $t7, $t7, $s4
+    addi $t7, $t7, 128
+    sw $t2, 0($t7)              # and second pixel...
+    
+    add $t7, $t7, $s3
+    addi $t7, $t7, 128
+    sw $t2, 0($t7)
+    
+    add $t7, $t7, $s2
+    addi $t7, $t7, 128
+    sw $t2, 0($t7)
+    
+    li $s1, 4               # create new block
+    li $s2, 0
+    li $s3, 0 
+    li $s4, 0
+    li $s7, 0
+    
+    j draw_game_init
+    
 
 # Function to decide which rotation position the block is at
 rotate: 
@@ -320,7 +375,7 @@ rotate1:                            # Rotate horizontally about third block firs
     lw $t0, ADDR_DSPL
     li $s7, 1
     
-    j grid_init
+    j draw_game_init
     
     
 undo_rotate1:
@@ -347,7 +402,7 @@ rotate2:                            # Rotate vertically about third block second
     lw $t0, ADDR_DSPL
     li $s7, 2
     
-    j grid_init
+    j draw_game_init
 
 undo_rotate2:
     subi $s1, $s1, 248
@@ -373,7 +428,7 @@ rotate3:                            # Rotate horizontally about third block thir
     lw $t0, ADDR_DSPL
     li $s7, 3
     
-    j grid_init
+    j draw_game_init
     
 undo_rotate3:
     subi $s1, $s1, -264
@@ -399,7 +454,7 @@ rotate4:                           # Rotate vertically about third block fourth 
     lw $t0, ADDR_DSPL
     li $s7, 0
     
-    j grid_init  
+    j draw_game_init
     
 undo_rotate4:
     subi $s1, $s1, -248
@@ -416,6 +471,9 @@ game_loop:
 	# 2b. Update locations
 	# 3. Draw the screen
 	# 4. Sleep
+	li $a0, 100
+	li $v0, 32
+	syscall
 
     #5. Go back to 1
     b game_loop
