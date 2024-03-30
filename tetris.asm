@@ -1,7 +1,7 @@
 ################ CSC258H1F Winter 2024 Assembly Final Project ##################
 # This file contains our implementation of Tetris.
 #
-# Student 1: Alec Dewulf, Student Number
+# Student 1: Alec Dewulf, 1009418701
 # Student 2: Faraaz Ahmed, 1008752985
 ######################## Bitmap Display Configuration ########################
 # - Unit width in pixels: 8
@@ -168,9 +168,6 @@ draw_game_init:
     la $t2, ARRAY
     lw $t3, ADDR_DSPL
     
-    li $a0, 2 #integer to be printed
-    li $v0, 1 #system call code 1: print_int
-    syscall
     
     
 draw_game_loop:
@@ -325,7 +322,6 @@ handle_floor_collision:
     # update array 
     la $t7, ARRAY
     li $t2, 2
-    #subi $s1, $s1, 4            # hit the ground so push up
     add $t7, $t7, $s1
     sw $t2, 0($t7)              # draw first pixel
     
@@ -347,8 +343,95 @@ handle_floor_collision:
     li $s4, 0
     li $s7, 0
     
+    j check_line_init
     j draw_game_init
+
+check_line_init:
+    li $t0, 0           # row count
+    li $t1, 0           # STORES THE NUMBER OF TIMES WE HAVE TO SHIFT DOWN AFTER
+    la $t5, ARRAY
+    addi $t5, $t5, 4         # skip column
+    li $t3, 0           # first index of curr line
+    li $t7, 0
+    li $t8, 0           # how many hits in a particular row
+
+
+check_line_loop:
+
     
+    lw $t9, 0($t5)
+    
+    bne $t9, 2, next_line     #hit a non-red block so no line
+    
+    addi $t0, $t0, 4        # else update parameters
+    addi $t5, $t5, 4
+    addi $t8, $t8, 1        # hit another red
+    
+    addi $t7, $t7, 4        # global counter
+    
+    beq $t8, 30, found_line_init     # 32 red in a row
+    
+    bne $t7, 4096, check_line_loop  # we haven't looked at every pixel so return to loop
+    jr $ra
+    
+next_line:
+    addi $t3, $t3, 128      # start at next line
+    la $t5, ARRAY
+    
+    add $t5, $t5, $t3       # update curr pos
+    addi $t5, $t5, 4        # skip col
+    
+    li $t7, 0
+    add $t7, $t3, $t3       # update global counter
+    addi $t7, $t7, 4
+    
+    addi $t0, $t0, 1        # looked at a row so update row count
+    
+    ble $t0, 31, check_line_loop    
+
+    j shift_down_loop
+    
+found_line_init:
+    li $t6, -3              # black color
+    li $t8, 0               # reset red count
+
+    subi $t5, $t5, 120      # go back to start of line CHANGE PARAM
+    li $t4, 0
+    add $t4, $t4, $t5
+    addi $t4, $t4, 124
+     
+
+found_line_loop:
+
+    li $a0, 0 #integer to be printed
+    li $v0, 1 #system call code 1: print_int
+    syscall
+    
+    beq $t5, $t4, write_grey        # check line loop
+    # rebuild grid
+    sw $t6, 0($t5)
+    addi $t5, $t5, 4
+    j found_line_loop
+
+write_grey:
+    li $t6, 1
+    subi $t5, $t5, 4
+    sw $t6, 0($t5)
+    j check_line_loop
+
+# ASSUMES $t1 stores number of shifts down
+shift_down_init:
+    li $t2, 0       # counter
+    li $t0, 0       # curr position
+
+shift_down_loop:
+    beq $t2, $t1, conclude_shift
+    
+    
+    jr $ra
+    
+conclude_shift:
+    jr $ra
 
 # Function to decide which rotation position the block is at
 rotate: 
