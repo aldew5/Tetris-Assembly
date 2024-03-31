@@ -261,7 +261,7 @@ move_left:
 
 move_down:
     li $t1, 128                  # $t1 = offset
-    li $t6, -1  
+    li $t6, -2 
 
     jal check_collision_init
     addi $s1, $s1, 128
@@ -309,8 +309,8 @@ check_collision_init:
     jr $ra
     
 handle_collision:
-    bge $t9, 2, handle_floor_collision
-    beq $t6, -1 game_loop    
+    beq $t6, -1 game_loop 
+    bge $t9, 2, handle_floor_collision #greater than 2 AND downwards movement
     
     beq $t6, 0, undo_rotate1
     beq $t6, 1, undo_rotate2
@@ -355,11 +355,9 @@ check_line_init:
     li $t7, 0
     li $t8, 0           # how many hits in a particular row
 
-#  
 check_line_loop:
     lw $t9, 0($t5)
     bne $t9, 2, next_line     #hit a non-red block so no line
-    
 
     addi $t5, $t5, 4        # position
     addi $t8, $t8, 1        # hit another red
@@ -431,7 +429,6 @@ shift_down_loop:
     addi $t2, $t2, -4            # increment count
     addi $t4, $t4, -4
     
-    
     j shift_down_loop
     
 conclude_shift:
@@ -447,16 +444,11 @@ shift_down:
     jal calc_shift
     # t6 now contains shift down amount   
     add $t6, $t6, $t4 
-    #li $a0, 9 #integer to be printed
-
-    #li $v0, 1 #system call code 1: print_int
-    #syscall
     
     li $t9, -3      # black
     sw $t9, 0($t4)  # set it black
     li $t9, 2       # red
     sw $t9, 0($t6)
-
     
     addi $t2, $t2, -4            # increment count
     addi $t4, $t4, -4
@@ -470,7 +462,6 @@ calc_shift:
     addi $t9, $t9, 1
     j calc_shift
     
-    
 return:
     jr $ra
     
@@ -481,7 +472,6 @@ rotate:
     beq $s7, 1, rotate2
     beq $s7, 2, rotate3
     beq $s7, 3, rotate4
-    
 
 rotate1:                            # Rotate horizontally about third block first position
     addi $s1, $s1, 8
@@ -603,7 +593,6 @@ game_loop:
     #5. Go back to 1
     b game_loop
     
-
 exit:
     li $v0, 10              # terminate the program gracefully
     syscall
