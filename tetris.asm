@@ -225,7 +225,9 @@ draw_tetro:
 # Checks for keyboard input
 keyboard_address:
     lw $t0, 0($s0)              # contents are 1 iff some key has been pressed
-    beq $t0, 1, keyboard_input  # if something has been pressed, handle it 
+    beq $t0, 1, keyboard_input  # if something has been pressed, handle it
+    jal gravity
+    jal move_down
     j game_loop                 # else, go back to game loop
     
 #Checks for keyboard input
@@ -283,12 +285,12 @@ move_down:
 
     lw $t0, ADDR_DSPL
     
-    li $v0, 31                # audio
-    li $a0, 63    
-    li $a1, 1000  
-    li $a2, 115     
-    li $a3, 100   
-    syscall
+    # li $v0, 31                # audio
+    # li $a0, 63    
+    # li $a1, 1000  
+    # li $a2, 115     
+    # li $a3, 100   
+    # syscall
     
     j draw_game_init
 
@@ -607,6 +609,12 @@ undo_rotate4:
     subi $s3, $s3, 124
     subi $s2, $s2, 124
     j game_loop
+    
+gravity:
+    li $a0, 500
+    li $v0, 32
+    syscall
+    jr $ra 
     
 game_loop:
 	# 1a. Check if key has been pressed
