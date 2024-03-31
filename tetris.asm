@@ -227,7 +227,7 @@ keyboard_address:
     lw $t0, 0($s0)              # contents are 1 iff some key has been pressed
     beq $t0, 1, keyboard_input  # if something has been pressed, handle it
     jal gravity
-    jal move_down
+    jal move_down_grav
     j game_loop                 # else, go back to game loop
     
 #Checks for keyboard input
@@ -285,12 +285,23 @@ move_down:
 
     lw $t0, ADDR_DSPL
     
-    # li $v0, 31                # audio
-    # li $a0, 63    
-    # li $a1, 1000  
-    # li $a2, 115     
-    # li $a3, 100   
-    # syscall
+    li $v0, 31                # audio
+    li $a0, 63    
+    li $a1, 100  
+    li $a2, 11     
+    li $a3, 100   
+    syscall
+    
+    j draw_game_init
+    
+move_down_grav:
+    li $t1, 128                  # $t1 = offset
+    li $t6, -2 
+
+    jal check_collision_init
+    addi $s1, $s1, 128
+
+    lw $t0, ADDR_DSPL
     
     j draw_game_init
 
@@ -495,7 +506,7 @@ return:
 rotate: 
     li $v0, 31                # audio
     li $a0, 63    
-    li $a1, 1000  
+    li $a1, 100  
     li $a2, 114     
     li $a3, 100   
     syscall
