@@ -343,7 +343,7 @@ handle_floor_collision:
     li $s4, 0
     li $s7, 0
     
-    j check_line_init
+    jal check_line_init
     j draw_game_init
 
 check_line_init:
@@ -355,23 +355,19 @@ check_line_init:
     li $t7, 0
     li $t8, 0           # how many hits in a particular row
 
-
+#  
 check_line_loop:
-
-    
     lw $t9, 0($t5)
-    
     bne $t9, 2, next_line     #hit a non-red block so no line
     
-    addi $t0, $t0, 4        # else update parameters
-    addi $t5, $t5, 4
+
+    addi $t5, $t5, 4        # position
     addi $t8, $t8, 1        # hit another red
-    
     addi $t7, $t7, 4        # global counter
-    
-    beq $t8, 30, found_line_init     # 32 red in a row
-    
+
+    beq $t8, 30, found_line_init     # 30 red in a row (excluding the cols)
     bne $t7, 4096, check_line_loop  # we haven't looked at every pixel so return to loop
+    
     jr $ra
     
 next_line:
@@ -382,14 +378,14 @@ next_line:
     addi $t5, $t5, 4        # skip col
     
     li $t7, 0
-    add $t7, $t3, $t3       # update global counter
+    addi $t7, $t7, 1        # update global counter
     addi $t7, $t7, 4
     
     addi $t0, $t0, 1        # looked at a row so update row count
+    li $t8, 0               # reset red block count
     
-    ble $t0, 31, check_line_loop    
-
-    j shift_down_loop
+    ble $t0, 30, check_line_loop    
+    j shift_down_init
     
 found_line_init:
     li $t6, -3              # black color
@@ -399,15 +395,12 @@ found_line_init:
     li $t4, 0
     add $t4, $t4, $t5
     addi $t4, $t4, 124
+    addi $t1, $t1, 1
      
 
 found_line_loop:
-
-    li $a0, 0 #integer to be printed
-    li $v0, 1 #system call code 1: print_int
-    syscall
+    beq $t5, $t4, write_grey        # write grey at the end
     
-    beq $t5, $t4, write_grey        # check line loop
     # rebuild grid
     sw $t6, 0($t5)
     addi $t5, $t5, 4
@@ -421,17 +414,66 @@ write_grey:
 
 # ASSUMES $t1 stores number of shifts down
 shift_down_init:
-    li $t2, 0       # counter
+    li $t2, 4096       # counter
     li $t0, 0       # curr position
+    la $t4, ARRAY
+    addi $t4, $t4, 4096  # count down
+    
+    addi $sp, $sp, -4   # put return address on stack
+    sw $ra, 0($sp)
 
 shift_down_loop:
-    beq $t2, $t1, conclude_shift
+    beq $t2, 0, conclude_shift
+    lw $t6, 0($t4)
+    
+    beq $t6, 2, shift_down      # shift red down
+    
+    addi $t2, $t2, -4            # increment count
+    addi $t4, $t4, -4
     
     
-    jr $ra
+    j shift_down_loop
     
 conclude_shift:
+    lw $ra, 0($sp)
+    addi $sp, $sp, 4
     jr $ra
+    
+shift_down:
+    li $t6, 0
+    # calc shift down amount
+    li $t9, 0
+    
+    jal calc_shift
+    # t6 now contains shift down amount   
+    add $t6, $t6, $t4 
+    #li $a0, 9 #integer to be printed
+
+    #li $v0, 1 #system call code 1: print_int
+    #syscall
+    
+    li $t9, -3      # black
+    sw $t9, 0($t4)  # set it black
+    li $t9, 2       # red
+    sw $t9, 0($t6)
+
+    
+    addi $t2, $t2, -4            # increment count
+    addi $t4, $t4, -4
+    j shift_down_loop
+
+# t9 is counter set to 0 before call
+# t1 contains # of shifts down
+calc_shift:
+    beq $t9, $t1, return    # return to loop
+    addi $t6, $t6, 128
+    addi $t9, $t9, 1
+    j calc_shift
+    
+    
+return:
+    jr $ra
+    
 
 # Function to decide which rotation position the block is at
 rotate: 
