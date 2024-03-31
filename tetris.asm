@@ -248,6 +248,13 @@ move_right:
     addi $s1, $s1, 4                    # set the value of $s1 where the block will now be drawn
     lw $t0, ADDR_DSPL                   # $t0 = top left pixel so grid drawing works
     
+    li $v0, 31                          # audio
+    li $a0, 63    
+    li $a1, 10000  
+    li $a2, 115     
+    li $a3, 100   
+    syscall
+    
     j draw_game_init                       # redraw everything but now the block is moved left
     
 # same idea as moving right except subtract 4
@@ -257,6 +264,14 @@ move_left:
     jal check_collision_init
     subi $s1, $s1, 4
     lw $t0, ADDR_DSPL
+    
+    li $v0, 31                # audio
+    li $a0, 63    
+    li $a1, 10000  
+    li $a2, 115     
+    li $a3, 100   
+    syscall
+    
     j draw_game_init 
 
 move_down:
@@ -267,6 +282,14 @@ move_down:
     addi $s1, $s1, 128
 
     lw $t0, ADDR_DSPL
+    
+    li $v0, 31                # audio
+    li $a0, 63    
+    li $a1, 1000  
+    li $a2, 115     
+    li $a3, 100   
+    syscall
+    
     j draw_game_init
 
 # check that we're not hitting left wall
@@ -468,6 +491,13 @@ return:
 
 # Function to decide which rotation position the block is at
 rotate: 
+    li $v0, 31                # audio
+    li $a0, 63    
+    li $a1, 1000  
+    li $a2, 114     
+    li $a3, 100   
+    syscall
+    
     beq $s7, 0, rotate1
     beq $s7, 1, rotate2
     beq $s7, 2, rotate3
