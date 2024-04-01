@@ -64,7 +64,7 @@ ARRAY:
 
 	# Run the Tetris game.
 main:
-    li $s0, 1       # $s0 = keyboard location in memory
+    li $s0, 0       # $s0 = keyboard location in memory
     li $s1, 4               # $s1 = offset to block location
     li $s2, 0
     li $s3, 0
@@ -1020,11 +1020,28 @@ draw_game_over:
     sw $t2, 392($t0)
     
     sw $t2, 260($t0)
+    
+game_over_loop:
+    
 
     
     
+keyboard_address_game_over:
+    lw $t1, ADDR_KBRD
+    lw $t0, 0($t1)              # contents are 1 iff some key has been pressed
+    beq $t0, 1, keyboard_input_game_over  # if something has been pressed, handle it
+
+    j game_over_loop              
+
+#Checks for keyboard input
+keyboard_input_game_over:   
+    lw $t1, ADDR_KBRD   # A key is pressed
+    lw $t0, 4($t1)                  	# Load second word from keyboard (which contains code)
+    li $ra, 0                           # this will be used to check where to jump back
+    beq $t0, 0x72, main 
     
-    
+    j game_over_loop
+
     
     
 exit:
