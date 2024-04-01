@@ -22,7 +22,27 @@ ADDR_DSPL:
 # The address of the keyboard. Don't forget to connect it!
 ADDR_KBRD:
     .word 0xffff0000
-
+    
+ROW1:
+   .word 2, 2, -3, 2, 2, -3, -3, 2, -3, -3, 2, 2, 2, -3, -3, -3, -3, 2, -3, 2, -3, -3, -3, 2, -3, -3, 2, 2, -3, -3
+ROW2:
+   .word 2, -3, -3, 2, 2, -3, -3, 2,2, -3, 2, 2, 2, -3, -3, 2, -3, 2, -3, -3, -3, -3, -3, -3, 2, -3, 2, 2, -3, -3
+ROW3:
+   .word -3, 2, -3, 2, 2, -3, -3, 2, -3, 2, 2, 2, 2, -3, -3, 2, -3, 2, 2, 2, 2, -3, -3, -3, -3, -3, 2, 2, -3, -3
+ROW4:
+   .word -3, 2, -3, 2, -3, -3, -3, 2, 2, -3, 2, -3, 2, -3, 2, -3, 2, 2, -3, 2, -3, 2, -3, -3, -3, -3, 2, 2, -3, -3
+ROW5:
+   .word 2, -3, -3, 2, -3, 2, 2, 2, -3, -3, 2, 2, 2, 2, -3, -3, -3, 2, 2, -3, -3, 2, -3, 2, 2, -3, 2, 2, -3, -3
+ROW6:
+   .word -3, 2, -3, -3, 2, -3, -3, 2, 2, 2, 2, -3, 2, -3, -3, -3, -3, 2, -3, 2, -3, -3, -3, 2, -3, 2, 2, -3, 2, -3
+ROW7:
+   .word -3, -3, -3, 2, 2, 2, -3, 2, -3, 2, 2, -3, -3, 2, -3, 2, -3, 2, -3, 2, 2, 2, -3, 2, -3, 2, 2, 2, -3, -3
+ROW8:
+   .word 2, 2, 2, 2, 2, -3, -3, -3, -3, -3, 2, -3, 2, -3, -3, -3, -3, 2, -3, 2, -3, -3, -3, 2, -3, -3, -3, 2, -3, 2
+ROW9:
+   .word -3, -3, -3, -3, -3, -3, -3, 2, -3, 2, 2, -3, 2, -3, -3, -3, 2, 2, -3, 2, -3, 2, -3, 2, -3, 2, 2, 2, -3, 2
+ROW10:
+   .word 2, 2, 2, 2, 2, -3, -3, -3, -3, -3, 2, -3, 2, -3, -3, 2, 2, 2, -3, 2, -3, -3, -3, 2, -3, -3, -3, 2, 2, 2
 # colors
 GRAY:
     .word 0x444444
@@ -80,7 +100,6 @@ main:
     li $t8, 32              # $t8 = address of final pixel in row
     
     
-
 grid_init:
     la $t0, ARRAY       # $t0 = base address for display
     li $t1, 1024            # $t1 = address of final pixel in bottom row
@@ -152,7 +171,7 @@ columns_init:
     li $t5, 1
 
 columns_loop:
-    beq $t3, $t4, draw_game_init      # break if counter is 32
+    beq $t3, $t4, draw_rows_init      # break if counter is 32
 
     sw $t5, 0($t7)          # for array
     sw $t5, 0($t8)
@@ -163,12 +182,116 @@ columns_loop:
     addi $t3, $t3, 1        # increment counter
     j columns_loop
     
+draw_rows_init:
+    li $t0, 0       # loop counter
+    li $t1, 3844    # start drawing here
+    la $t7, ARRAY
+
+draw_rows_loop:
+    beq $t0, 5, draw_game_init
+    # pick a number between 1 and 10 and store it in $a0
+    li $v0, 42
+    li $a0, 0
+    li $a1, 10
+    syscall
+    
+    jal get_ra
+    beq $a0, 0, draw_row_one
+    jal get_ra
+    beq $a0, 1, draw_row_two
+    jal get_ra
+    beq $a0, 2, draw_row_three
+    jal get_ra
+    beq $a0, 3, draw_row_four
+    jal get_ra
+    beq $a0, 4, draw_row_five
+    jal get_ra
+    beq $a0, 5, draw_row_six
+    jal get_ra
+    beq $a0, 6, draw_row_seven
+    jal get_ra
+    beq $a0, 7, draw_row_eight
+    jal get_ra
+    beq $a0, 8, draw_row_nine
+    jal get_ra
+    beq $a0, 9, draw_row_ten
+    # now $t2 contains start of row we want
+    
+    li $t5, 0       # inner loop counter; goes to 30
+    la $t7, ARRAY
+    add $t7, $t7, $t1   #t7 now contains the spot we want to start drawing at
+    jal draw_row
+    
+    addi $t0, $t0, 1      # update counter
+    subi $t1, $t1, 128
+    
+    j draw_rows_loop
+    
+draw_row:
+    beq $t5, 30, get_ra     # drawn everything so go back
+    lw $t3, 0($t2)           # get next color
+    sw $t3, 0($t7)          # write color to grid
+    
+    addi $t7, $t7, 4
+    addi $t2, $t2, 4        # next color and next array pos
+    
+    addi $t5, $t5, 1        # update counter
+    j draw_row
+    
+get_ra:
+    
+    move $v0, $ra
+    jr $ra
+    
+    
+draw_row_one:
+    la $t2, ROW1
+    addi $ra, $ra, 4
+    jr $ra
+draw_row_two:
+    la $t2, ROW2
+    addi $ra, $ra, 4
+    jr $ra
+draw_row_three:
+    la $t2, ROW3
+    addi $ra, $ra, 4
+    jr $ra
+draw_row_four:
+    la $t2, ROW4
+    addi $ra, $ra, 4
+    jr $ra
+draw_row_five:
+    la $t2, ROW5
+    addi $ra, $ra, 4
+    jr $ra
+draw_row_six:
+    la $t2, ROW6
+    addi $ra, $ra, 4
+    jr $ra
+draw_row_seven:
+    la $t2, ROW7
+    addi $ra, $ra, 4
+    jr $ra
+draw_row_eight:
+    la $t2, ROW8
+    addi $ra, $ra, 4
+    jr $ra
+draw_row_nine:
+    la $t2, ROW9
+    addi $ra, $ra, 4
+    jr $ra
+draw_row_ten:
+    la $t2, ROW10
+    addi $ra, $ra, 4
+    jr $ra
+ 
+    
+    
+    
 draw_game_init:
     li $t0, 0               # counter
     la $t2, ARRAY
     lw $t3, ADDR_DSPL
-    
-    
     
 draw_game_loop:
     beq $t0, 4096, draw_tetro        # looked at all the blocks
@@ -1027,10 +1150,10 @@ draw_game_over:
     li $a2, 127    
     li $a3, 200   
     syscall
-
     
 game_over_loop:
-    
+    j keyboard_address_game_over
+    b game_over_loop
 
     
     
