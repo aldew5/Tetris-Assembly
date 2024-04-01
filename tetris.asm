@@ -410,10 +410,30 @@ keyboard_input:
     beq $t0, 0x61, move_left            # move left 1 pixel
     beq $t0, 0x73, move_down
     beq $t0, 0x77, rotate
+    beq $t0, 0x70, pause
     beq $t0, 0x71, exit
     
     j game_loop
+    
+pause:
+    lw $t1, ADDR_KBRD
+    lw $t0, 0($t1)
 
+    li $a0, 50
+    li $v0, 32
+    syscall
+
+    beq $t0, 1, check_p_unpause
+    
+    j pause
+    
+check_p_unpause:
+    lw $t1, ADDR_KBRD
+    lw $t0, 4($t1)
+    beq $t0, 0x70, game_loop
+    
+    j pause
+    
 # moves block left
 move_right:
     li $t1, 4                  # $t1 = offset
