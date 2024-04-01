@@ -64,7 +64,7 @@ ARRAY:
 
 	# Run the Tetris game.
 main:
-    lw $s0, ADDR_KBRD       # $s0 = keyboard location in memory
+    li $s0, 0       # $s0 = keyboard location in memory
     li $s1, 4               # $s1 = offset to block location
     li $s2, 0
     li $s3, 0
@@ -224,15 +224,17 @@ draw_tetro:
 
 # Checks for keyboard input
 keyboard_address:
-    lw $t0, 0($s0)              # contents are 1 iff some key has been pressed
+    lw $t1, ADDR_KBRD
+    lw $t0, 0($t1)              # contents are 1 iff some key has been pressed
     beq $t0, 1, keyboard_input  # if something has been pressed, handle it
     jal gravity
     jal move_down_grav
     j game_loop                 # else, go back to game loop
     
 #Checks for keyboard input
-keyboard_input:                     	# A key is pressed
-    lw $t0, 4($s0)                  	# Load second word from keyboard (which contains code)
+keyboard_input:   
+    lw $t1, ADDR_KBRD   # A key is pressed
+    lw $t0, 4($t1)                  	# Load second word from keyboard (which contains code)
     li $ra, 0                           # this will be used to check where to jump back
     beq $t0 0x64, move_right	        # moves cube right 1 pixel
     beq $t0, 0x61, move_left            # move left 1 pixel
@@ -424,6 +426,7 @@ next_line:
 found_line_init:
     li $t6, -3              # black color
     li $t8, 0               # reset red count
+    addi $s0, $s0, 1        # update SCORE
 
     subi $t5, $t5, 120      # go back to start of line CHANGE PARAM
     li $t4, 0
@@ -627,7 +630,22 @@ gravity:
     syscall
     jr $ra 
     
+    
+draw_digit:
+    beq $s0, 0, zero
+    beq $s0, 1, one
+    beq $s0, 2, two
+    beq $s0, 3, three
+    beq $s0, 4, four
+    beq $s0, 5, five
+    beq $s0, 6, six
+    beq $s0, 7, seven
+    beq $s0, 8, eight
+    beq $s0, 9, nine
+    
 game_loop:
+    jal first_zero
+	jal draw_digit
 	# 1a. Check if key has been pressed
 	j keyboard_address
     # 1b. Check which key has been pressed
@@ -641,6 +659,168 @@ game_loop:
 
     #5. Go back to 1
     b game_loop
+    
+zero:
+    lw $t0, ADDR_DSPL
+    lw $t2, RED
+    sw $t2, 236($t0)
+    sw $t2, 364($t0)
+    sw $t2, 492($t0)
+    sw $t2, 620($t0)
+    sw $t2, 748($t0)
+    sw $t2, 240($t0)
+    sw $t2, 244($t0)
+    sw $t2, 372($t0)
+    sw $t2, 500($t0)
+    sw $t2, 628($t0)
+    sw $t2, 752($t0)
+    sw $t2, 756($t0)
+    jr $ra
+
+one:
+    lw $t0, ADDR_DSPL
+    lw $t2, RED
+    sw $t2, 244($t0)
+    sw $t2, 372($t0)
+    sw $t2, 500($t0)
+    sw $t2, 628($t0)
+    sw $t2, 756($t0)
+    jr $ra
+    
+ two:
+    lw $t0, ADDR_DSPL
+    lw $t2, RED
+    sw $t2, 240($t0)
+    sw $t2, 244($t0)
+    sw $t2, 372($t0)
+    sw $t2, 500($t0)
+    sw $t2, 496($t0)
+    sw $t2, 624($t0)
+    sw $t2, 752($t0)
+    sw $t2, 756($t0)
+    jr $ra
+    
+three:
+    lw $t0, ADDR_DSPL
+    lw $t2, RED
+    sw $t2, 240($t0)
+    sw $t2, 244($t0)
+    sw $t2, 372($t0)
+    sw $t2, 500($t0)
+    sw $t2, 496($t0)
+    sw $t2, 628($t0)
+    sw $t2, 752($t0)
+    sw $t2, 756($t0)
+    jr $ra
+    
+four:
+    lw $t0, ADDR_DSPL
+    lw $t2, RED
+    sw $t2, 236($t0)
+    sw $t2, 364($t0)
+    sw $t2, 492($t0)
+    sw $t2, 244($t0)
+    sw $t2, 372($t0)
+    sw $t2, 500($t0)
+    sw $t2, 496($t0)
+    sw $t2, 628($t0)
+    sw $t2, 756($t0)
+    jr $ra
+    
+five:
+    lw $t0, ADDR_DSPL
+    lw $t2, RED
+    sw $t2, 240($t0)
+    sw $t2, 244($t0)
+    sw $t2, 368($t0)
+    sw $t2, 500($t0)
+    sw $t2, 496($t0)
+    sw $t2, 628($t0)
+    sw $t2, 752($t0)
+    sw $t2, 756($t0)
+    jr $ra
+    
+six:
+    lw $t0, ADDR_DSPL
+    lw $t2, RED
+    sw $t2, 236($t0)
+    sw $t2, 364($t0)
+    sw $t2, 492($t0)
+    sw $t2, 620($t0)
+    sw $t2, 748($t0)
+    sw $t2, 240($t0)
+    sw $t2, 244($t0)
+    sw $t2, 500($t0)
+    sw $t2, 496($t0)
+    sw $t2, 628($t0)
+    sw $t2, 752($t0)
+    sw $t2, 756($t0)
+    jr $ra
+    
+seven:
+    lw $t0, ADDR_DSPL
+    lw $t2, RED
+    sw $t2, 236($t0)
+    sw $t2, 240($t0)
+    sw $t2, 244($t0)
+    sw $t2, 372($t0)
+    sw $t2, 500($t0)
+    sw $t2, 628($t0)
+    sw $t2, 756($t0)
+    jr $ra
+    
+eight:
+    lw $t0, ADDR_DSPL
+    lw $t2, RED
+    sw $t2, 236($t0)
+    sw $t2, 364($t0)
+    sw $t2, 492($t0)
+    sw $t2, 620($t0)
+    sw $t2, 748($t0)
+    sw $t2, 240($t0)
+    sw $t2, 244($t0)
+    sw $t2, 372($t0)
+    sw $t2, 500($t0)
+    sw $t2, 496($t0)
+    sw $t2, 628($t0)
+    sw $t2, 752($t0)
+    sw $t2, 756($t0)
+    jr $ra
+    
+nine:
+    lw $t0, ADDR_DSPL
+    lw $t2, RED
+    sw $t2, 236($t0)
+    sw $t2, 364($t0)
+    sw $t2, 492($t0)
+    sw $t2, 748($t0)
+    sw $t2, 240($t0)
+    sw $t2, 244($t0)
+    sw $t2, 372($t0)
+    sw $t2, 500($t0)
+    sw $t2, 496($t0)
+    sw $t2, 628($t0)
+    sw $t2, 752($t0)
+    sw $t2, 756($t0)
+    jr $ra
+    
+first_zero:
+    lw $t0, ADDR_DSPL
+    lw $t2, RED
+    sw $t2, 220($t0)
+    sw $t2, 348($t0)
+    sw $t2, 476($t0)
+    sw $t2, 604($t0)
+    sw $t2, 732($t0)
+    sw $t2, 224($t0)
+    sw $t2, 228($t0)
+    sw $t2, 356($t0)
+    sw $t2, 484($t0)
+    sw $t2, 612($t0)
+    sw $t2, 736($t0)
+    sw $t2, 740($t0)
+    jr $ra
+    
     
 exit:
     li $v0, 10              # terminate the program gracefully
