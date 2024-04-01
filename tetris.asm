@@ -64,7 +64,7 @@ ARRAY:
 
 	# Run the Tetris game.
 main:
-    li $s0, 0       # $s0 = keyboard location in memory
+    li $s0, 1       # $s0 = keyboard location in memory
     li $s1, 4               # $s1 = offset to block location
     li $s2, 0
     li $s3, 0
@@ -661,7 +661,6 @@ gravity3:
     syscall
     jr $ra 
     
-<<<<<<< HEAD
     
     
 draw_digit_one:
@@ -702,8 +701,7 @@ draw_digit_two:
     beq $t3, 7, seven
     beq $t3, 8, eight
     beq $t3, 9, nine
-=======
->>>>>>> 143d28a7da08efaced6719883e7f727fb7ccc7b8
+
     
     
 game_loop:
