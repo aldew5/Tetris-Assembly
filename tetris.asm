@@ -227,9 +227,28 @@ keyboard_address:
     lw $t1, ADDR_KBRD
     lw $t0, 0($t1)              # contents are 1 iff some key has been pressed
     beq $t0, 1, keyboard_input  # if something has been pressed, handle it
-    jal gravity
-    jal move_down_grav
+    # jal gravity
+    # jal move_down_grav
+    beq $s0, 0, jal_grav1
+    beq $s0, 1, jal_grav2
+    bgt $s0, 1, jal_grav3
     j game_loop                 # else, go back to game loop
+ 
+    
+jal_grav1:
+    jal gravity1
+    jal move_down_grav
+    jr $ra
+
+jal_grav2:
+    jal gravity2
+    jal move_down_grav
+    jr $ra
+    
+jal_grav3:
+    jal gravity3
+    jal move_down_grav
+    jr $ra
     
 #Checks for keyboard input
 keyboard_input:   
@@ -624,8 +643,20 @@ undo_rotate4:
     subi $s2, $s2, 124
     j game_loop
     
-gravity:
+gravity1:
     li $a0, 500
+    li $v0, 32
+    syscall
+    jr $ra 
+    
+gravity2:
+    li $a0, 250
+    li $v0, 32
+    syscall
+    jr $ra 
+    
+gravity3:
+    li $a0, 100
     li $v0, 32
     syscall
     jr $ra 
