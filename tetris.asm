@@ -1021,6 +1021,14 @@ draw_game_over:
     
     sw $t2, 260($t0)
     
+    li $v0, 31                # audio
+    li $a0, 63    
+    li $a1, 1000  
+    li $a2, 127    
+    li $a3, 200   
+    syscall
+
+    
 game_over_loop:
     
 
