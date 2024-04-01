@@ -661,22 +661,54 @@ gravity3:
     syscall
     jr $ra 
     
+<<<<<<< HEAD
     
-draw_digit:
-    beq $s0, 0, zero
-    beq $s0, 1, one
-    beq $s0, 2, two
-    beq $s0, 3, three
-    beq $s0, 4, four
-    beq $s0, 5, five
-    beq $s0, 6, six
-    beq $s0, 7, seven
-    beq $s0, 8, eight
-    beq $s0, 9, nine
+    
+draw_digit_one:
+    lw $t0, ADDR_DSPL
+    lw $t2, RED
+    
+    li $t3, 10
+    div $s0, $t3             
+    mfhi $t3               # t3 now contains the second digit
+    
+    beq $t3, 0, zero
+    beq $t3, 1, one
+    beq $t3, 2, two
+    beq $t3, 3, three
+    beq $t3, 4, four
+    beq $t3, 5, five
+    beq $t3, 6, six
+    beq $t3, 7, seven
+    beq $t3, 8, eight
+    beq $t3, 9, nine
+    
+draw_digit_two:
+    lw $t0, ADDR_DSPL
+    lw $t2, RED
+    li $t3, 10
+    div $s0, $t3             
+    mflo $t3               # t3 now contains the second digit
+    
+    subi $t0, $t0, 16       # offset by 16 for second digit
+    
+    beq $t3, 0, zero
+    beq $t3, 1, one
+    beq $t3, 2, two
+    beq $t3, 3, three
+    beq $t3, 4, four
+    beq $t3, 5, five
+    beq $t3, 6, six
+    beq $t3, 7, seven
+    beq $t3, 8, eight
+    beq $t3, 9, nine
+=======
+>>>>>>> 143d28a7da08efaced6719883e7f727fb7ccc7b8
+    
     
 game_loop:
-    jal first_zero
-	jal draw_digit
+    jal draw_digit_two
+	jal draw_digit_one
 	# 1a. Check if key has been pressed
 	j keyboard_address
     # 1b. Check which key has been pressed
@@ -690,10 +722,24 @@ game_loop:
 
     #5. Go back to 1
     b game_loop
+
+# subtract 16
+first_zero:
+    sw $t2, 220($t0)
+    sw $t2, 348($t0)
+    sw $t2, 476($t0)
+    sw $t2, 604($t0)
+    sw $t2, 732($t0)
+    sw $t2, 224($t0)
+    sw $t2, 228($t0)
+    sw $t2, 356($t0)
+    sw $t2, 484($t0)
+    sw $t2, 612($t0)
+    sw $t2, 736($t0)
+    sw $t2, 740($t0)
+    jr $ra
     
 zero:
-    lw $t0, ADDR_DSPL
-    lw $t2, RED
     sw $t2, 236($t0)
     sw $t2, 364($t0)
     sw $t2, 492($t0)
@@ -709,8 +755,6 @@ zero:
     jr $ra
 
 one:
-    lw $t0, ADDR_DSPL
-    lw $t2, RED
     sw $t2, 244($t0)
     sw $t2, 372($t0)
     sw $t2, 500($t0)
@@ -719,8 +763,6 @@ one:
     jr $ra
     
  two:
-    lw $t0, ADDR_DSPL
-    lw $t2, RED
     sw $t2, 240($t0)
     sw $t2, 244($t0)
     sw $t2, 372($t0)
@@ -732,8 +774,6 @@ one:
     jr $ra
     
 three:
-    lw $t0, ADDR_DSPL
-    lw $t2, RED
     sw $t2, 240($t0)
     sw $t2, 244($t0)
     sw $t2, 372($t0)
@@ -745,8 +785,6 @@ three:
     jr $ra
     
 four:
-    lw $t0, ADDR_DSPL
-    lw $t2, RED
     sw $t2, 236($t0)
     sw $t2, 364($t0)
     sw $t2, 492($t0)
@@ -759,8 +797,6 @@ four:
     jr $ra
     
 five:
-    lw $t0, ADDR_DSPL
-    lw $t2, RED
     sw $t2, 240($t0)
     sw $t2, 244($t0)
     sw $t2, 368($t0)
@@ -772,8 +808,6 @@ five:
     jr $ra
     
 six:
-    lw $t0, ADDR_DSPL
-    lw $t2, RED
     sw $t2, 236($t0)
     sw $t2, 364($t0)
     sw $t2, 492($t0)
@@ -789,8 +823,6 @@ six:
     jr $ra
     
 seven:
-    lw $t0, ADDR_DSPL
-    lw $t2, RED
     sw $t2, 236($t0)
     sw $t2, 240($t0)
     sw $t2, 244($t0)
@@ -801,8 +833,6 @@ seven:
     jr $ra
     
 eight:
-    lw $t0, ADDR_DSPL
-    lw $t2, RED
     sw $t2, 236($t0)
     sw $t2, 364($t0)
     sw $t2, 492($t0)
@@ -819,8 +849,6 @@ eight:
     jr $ra
     
 nine:
-    lw $t0, ADDR_DSPL
-    lw $t2, RED
     sw $t2, 236($t0)
     sw $t2, 364($t0)
     sw $t2, 492($t0)
@@ -835,22 +863,6 @@ nine:
     sw $t2, 756($t0)
     jr $ra
     
-first_zero:
-    lw $t0, ADDR_DSPL
-    lw $t2, RED
-    sw $t2, 220($t0)
-    sw $t2, 348($t0)
-    sw $t2, 476($t0)
-    sw $t2, 604($t0)
-    sw $t2, 732($t0)
-    sw $t2, 224($t0)
-    sw $t2, 228($t0)
-    sw $t2, 356($t0)
-    sw $t2, 484($t0)
-    sw $t2, 612($t0)
-    sw $t2, 736($t0)
-    sw $t2, 740($t0)
-    jr $ra
     
     
 exit:
