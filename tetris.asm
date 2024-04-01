@@ -322,7 +322,6 @@ draw_block:
     
     j draw_game_loop
 
-    
 
 
 # for now draws at ADDR_DISPLAY
@@ -409,31 +408,12 @@ keyboard_input:
     beq $t0 0x64, move_right	        # moves cube right 1 pixel
     beq $t0, 0x61, move_left            # move left 1 pixel
     beq $t0, 0x73, move_down
-    beq $t0, 0x77, rotate
     beq $t0, 0x70, pause
+    beq $t0, 0x77, rotate
     beq $t0, 0x71, exit
     
     j game_loop
-    
-pause:
-    lw $t1, ADDR_KBRD
-    lw $t0, 0($t1)
 
-    li $a0, 50
-    li $v0, 32
-    syscall
-
-    beq $t0, 1, check_p_unpause
-    
-    j pause
-    
-check_p_unpause:
-    lw $t1, ADDR_KBRD
-    lw $t0, 4($t1)
-    beq $t0, 0x70, game_loop
-    
-    j pause
-    
 # moves block left
 move_right:
     li $t1, 4                  # $t1 = offset
@@ -580,12 +560,13 @@ check_line_init:
     la $t5, ARRAY
     addi $t5, $t5, 4         # skip column
     li $t3, 0           # first index of curr line
-    li $t7, 0
+    li $t7, 0           # current pos
     li $t8, 0           # how many hits in a particular row
+    la $t9, ARRAY           # where we start shifting down
 
 check_line_loop:
-    lw $t9, 0($t5)
-    bne $t9, 2, next_line     #hit a non-red block so no line
+    lw $t6, 0($t5)
+    bne $t6, 2, next_line     #hit a non-red block so no line
 
     addi $t5, $t5, 4        # position
     addi $t8, $t8, 1        # hit another red
@@ -603,8 +584,8 @@ next_line:
     add $t5, $t5, $t3       # update curr pos
     addi $t5, $t5, 4        # skip col
     
-    li $t7, 0
-    addi $t7, $t7, 1        # update global counter
+    #li $t7, 0
+    #addi $t7, $t7, 1        # update global counter
     addi $t7, $t7, 4
     
     addi $t0, $t0, 1        # looked at a row so update row count
@@ -619,10 +600,15 @@ found_line_init:
     addi $s0, $s0, 1        # update SCORE
 
     subi $t5, $t5, 120      # go back to start of line CHANGE PARAM
+    li $t9, 0
+    add $t9, $t9, $t5       # starting point when we shift down later
+    
     li $t4, 0
     add $t4, $t4, $t5
     addi $t4, $t4, 124
     addi $t1, $t1, 1
+    
+    
      
 
 found_line_loop:
@@ -641,10 +627,17 @@ write_grey:
 
 # ASSUMES $t1 stores number of shifts down
 shift_down_init:
-    li $t2, 4096       # counter
+    la $t8, ARRAY
+    li $t2, 0       # counter
+    add $t2, $t2, $t9
+    sub $t2, $t2, $t8
+    
+    
     li $t0, 0       # curr position
-    la $t4, ARRAY
-    addi $t4, $t4, 4096  # count down
+    li $t4, 0
+    add $t4, $t4, $t9  # count down
+    
+    
     
     addi $sp, $sp, -4   # put return address on stack
     sw $ra, 0($sp)
@@ -832,7 +825,24 @@ gravity3:
     syscall
     jr $ra 
     
+pause:
+    lw $t1, ADDR_KBRD
+    lw $t0, 0($t1)
+
+    li $a0, 50
+    li $v0, 32
+    syscall
+
+    beq $t0, 1, check_p_unpause
     
+    j pause
+    
+check_p_unpause:
+    lw $t1, ADDR_KBRD
+    lw $t0, 4($t1)
+    beq $t0, 0x70, game_loop
+    
+    j pause
     
 draw_digit_one:
     lw $t0, ADDR_DSPL
