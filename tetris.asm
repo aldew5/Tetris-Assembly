@@ -209,16 +209,44 @@ draw_block:
 draw_tetro:
     lw $t2, RED             # $t2 = color of block
     lw $t0, ADDR_DSPL
+    la $t3, ARRAY
+
     add $t0, $t0, $s1
-    sw $t2, 0($t0)
+    add $t3, $t3, $s1
+    lw $t4, 0($t3)
+    
+    beq $t4, 2, draw_game_over  # if there's already a red where we draw the tetro its game over
+    
+    sw $t2, 0($t0)              # else draw
+    
     add $t0, $t0, $s4       # register for rotation
     addi $t0, $t0, 128      # draw the pixel, go to next row and do same
+    add $t3, $t3, $s4
+    addi $t3, $t3, 128
+    lw $t4, 0($t3)
+    
+    beq $t4, 2, draw_game_over  # if there's already a red where we draw the tetro its game over
+    
     sw $t2, 0($t0)
+    
     add $t0, $t0, $s3       # register for rotation
     addi $t0, $t0, 128
+    add $t3, $t3, $s3
+    addi $t3, $t3, 128
+    lw $t4, 0($t3)
+    
+    beq $t4, 2, draw_game_over  # if there's already a red where we draw the tetro its game over
+    
     sw $t2, 0($t0)
+    
     add $t0, $t0, $s2       # register for rotation
     addi $t0, $t0, 128
+    add $t3, $t3, $s2
+    addi $t3, $t3, 128
+    lw $t4, 0($t3)
+    
+    beq $t4, 2, draw_game_over  # if there's already a red where we draw the tetro its game over
+    
     sw $t2, 0($t0)
     j game_loop 
 
@@ -860,6 +888,142 @@ nine:
     sw $t2, 752($t0)
     sw $t2, 756($t0)
     jr $ra
+
+draw_game_over:
+    lw $t0, ADDR_DSPL
+    addi $t0, $t0, 12
+    addi $t0, $t0, 1024
+    lw $t2, BLUE 
+
+    #G
+    sw $t2, 0($t0)
+    sw $t2, 4($t0)
+    sw $t2, 8($t0)
+
+    sw $t2, 128($t0)
+    sw $t2, 256($t0)
+    
+    sw $t2, 384($t0)
+    sw $t2, 388($t0)
+    sw $t2, 392($t0)
+    sw $t2, 264($t0)
+
+    addi $t0, $t0, 16
+    
+    #A
+    sw $t2, 0($t0)
+    sw $t2, 4($t0)
+    sw $t2, 8($t0)
+    
+    sw $t2, 128($t0)
+    sw $t2, 256($t0)
+    sw $t2, 384($t0)
+    
+    sw $t2, 136($t0)
+    sw $t2, 264($t0)
+    sw $t2, 392($t0)
+    
+    sw $t2, 260($t0)
+    
+    addi $t0, $t0, 16
+    
+    #M
+    sw $t2, 0($t0)
+    sw $t2, 132($t0)
+    sw $t2, 8($t0)
+    
+    sw $t2, 128($t0)
+    sw $t2, 256($t0)
+    sw $t2, 384($t0)
+    
+    sw $t2, 136($t0)
+    sw $t2, 264($t0)
+    sw $t2, 392($t0)
+    
+    addi $t0, $t0, 16
+    
+    #E
+    sw $t2, 0($t0)
+    sw $t2, 4($t0)
+    sw $t2, 8($t0)
+    
+    sw $t2, 128($t0)
+    sw $t2, 256($t0)
+    sw $t2, 260($t0)
+    sw $t2, 384($t0)
+    sw $t2, 512($t0)
+    sw $t2, 516($t0)
+    sw $t2, 520($t0)
+    
+    addi $t0, $t0, 888
+    
+    #O
+    sw $t2, 0($t0)
+    sw $t2, 4($t0)
+    sw $t2, 8($t0)
+    
+    sw $t2, 128($t0)
+    sw $t2, 256($t0)
+    sw $t2, 384($t0)
+    sw $t2, 388($t0)
+    
+    sw $t2, 136($t0)
+    sw $t2, 264($t0)
+    sw $t2, 392($t0)
+    
+    addi $t0, $t0, 16
+    
+    #V
+    sw $t2, 0($t0)
+    # sw $t2, 4($t0)
+    sw $t2, 8($t0)
+    
+    sw $t2, 128($t0)
+    sw $t2, 256($t0)
+    # sw $t2, 384($t0)
+    sw $t2, 388($t0)
+    
+    sw $t2, 136($t0)
+    sw $t2, 264($t0)
+    # sw $t2, 392($t0)
+    
+    addi $t0, $t0, 16
+    
+    #E
+    sw $t2, 0($t0)
+    sw $t2, 4($t0)
+    sw $t2, 8($t0)
+    
+    sw $t2, 128($t0)
+    sw $t2, 256($t0)
+    sw $t2, 260($t0)
+    sw $t2, 384($t0)
+    sw $t2, 512($t0)
+    sw $t2, 516($t0)
+    sw $t2, 520($t0)
+    
+    addi $t0, $t0, 16
+    
+    #R
+    sw $t2, 0($t0)
+    sw $t2, 4($t0)
+    sw $t2, 8($t0)
+    
+    sw $t2, 128($t0)
+    sw $t2, 256($t0)
+    sw $t2, 384($t0)
+    sw $t2, 512($t0)
+    sw $t2, 524($t0)
+    
+    sw $t2, 136($t0)
+    sw $t2, 264($t0)
+    sw $t2, 392($t0)
+    
+    sw $t2, 260($t0)
+
+    
+    
+    
     
     
     
