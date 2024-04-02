@@ -826,6 +826,37 @@ gravity3:
     jr $ra 
     
 pause:
+    lw $t3, ADDR_DSPL
+    lw $t2, BLUE
+    addi $t3, $t3, 1152
+    
+    sw $t2, 48($t3)
+    sw $t2, 52($t3)
+    sw $t2, 176($t3)
+    sw $t2, 180($t3)
+    sw $t2, 304($t3)
+    sw $t2, 308($t3)
+    sw $t2, 432($t3)
+    sw $t2, 436($t3)
+    sw $t2, 560($t3)
+    sw $t2, 564($t3)
+    sw $t2, 688($t3)
+    sw $t2, 692($t3)
+    
+    sw $t2, 60($t3)
+    sw $t2, 64($t3)
+    sw $t2, 188($t3)
+    sw $t2, 192($t3)
+    sw $t2, 316($t3)
+    sw $t2, 320($t3)
+    sw $t2, 444($t3)
+    sw $t2, 448($t3)
+    sw $t2, 572($t3)
+    sw $t2, 576($t3)
+    sw $t2, 700($t3)
+    sw $t2, 704($t3)
+    
+    
     lw $t1, ADDR_KBRD
     lw $t0, 0($t1)
 
